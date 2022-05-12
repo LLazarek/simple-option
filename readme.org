@@ -1,0 +1,164 @@
+#+TITLE: simple-option
+
+Simple implementations of option and either datatypes.
+
+Usage:
+#+BEGIN_SRC racket
+(require simple-option) ; for option
+(require simple-option/option) ; same as above
+(require simple-option/either) ; for either
+#+END_SRC
+
+* =option= interface
+The option library defines a unique value named =absent=.
+The idea is that client code returns this =absent= value to signal failures, and otherwise just returns successful results normally.
+Note that this is different than typical implementations of this data type in that there is no extra wrapper for successful results.
+This is usually convenient, but does sacrifice some expressiveness; see the caveat below.
+
+The rest of the library provides tools for working with values that might be =absent=.
+=option-let*= provides a convenient interface to sequence operations that might return =absent=.
+=in-option= provides an iteration form that is like an empty sequence for =absent=, and =in-value= otherwise.
+=for/first/option= is a version of racket's =for/first= that returns =absent= if no iteraction occurs instead of =#f=.
+=fail-if= is a convenience tool to explicitly short-circuit a computation under some condition.
+=hash-ref/option= and =first/option= are versions of their namesakes that produce =absent= in the event of failure instead of raising an exception.
+
+Examples:
+#+BEGIN_SRC racket
+  (require simple-option)
+
+  ;; Without any absences, option-let* is just like match-let*
+  (option-let* ([x 1]
+		[(list y) '(2)])
+	       (+ x y))
+  ; => 3
+
+  ;; Absences short-circuit the whole expression to absent
+  (option-let* ([x absent]
+		; the rest is skipped
+		[(list y) '(2)])
+	       (+ x y))
+  ; => absent
+
+
+  (define (fails-on-odd-numbers n)
+    (if (even? n)
+	(/ n 2)
+	absent))
+  (option-let* ([x 1]
+		[y (fails-on-odd-numbers 8)]
+		[z (fails-on-odd-numbers y)])
+	       (+ x y z))
+  ; => 7
+
+  (option-let* ([x 1]
+		[y (fails-on-odd-numbers 7)]
+		; the rest is skipped
+		[z (fails-on-odd-numbers y)])
+	       (+ x y z))
+  ; => absent
+
+
+  ;; fail-if is mostly useful in option-let*, to explicitly short-circuit under a condition
+
+  ;; the remaining examples presented as tests...
+  (test-equal? (option-let* ([x 5]
+			     [y (fail-if (odd? x))]
+			     [z (/ x 2)])
+			    (add1 z))
+	       absent)
+  (test-equal? (option-let* ([x 8]
+			     [y (fail-if (odd? x))]
+			     [z (/ x 2)])
+			    (add1 z))
+	       5)
+
+  (test-equal? (for/list ([x (in-option 5)]) x)
+	       '(5))
+  (test-equal? (for/list ([x (in-option absent)]) x)
+	       '())
+
+  (test-equal? (for/first/option ([i '(3 5 7)]
+				  #:when (even? i))
+		 i)
+	       absent)
+  (test-equal? (for/first/option ([i '(3 5 2 7)]
+				  #:when (even? i))
+		 i)
+	       2)
+#+END_SRC
+
+
+* =either= interface
+The either library is much like the option one, but instead of =absent= it has =failure=, which carries a failure message.
+The library provides the same interface as for options, adapted to support error messages.
+
+Examples:
+#+BEGIN_SRC racket
+  (require simple-option/either)
+
+  (test-equal? (either-let* () 5) 5)
+  (test-equal? (either-let* ([x 5])
+			    x)
+	       5)
+  (test-equal? (either-let* ([x (failure "bad")])
+			    x)
+	       (failure "bad"))
+  (test-equal? (either-let* ([x 5]
+			     [y (failure "bad")])
+			    (+ x y))
+	       (failure "bad"))
+  (test-equal? (either-let* ([x 5]
+			     [y (+ x 5)])
+			    (+ x y))
+	       15)
+
+
+  (test-equal? (either-let* ([x 5]
+			     [y (fail-if (odd? x) "bad x")])
+			    (/ x 2))
+	       (failure "bad x"))
+  (test-equal? (either-let* ([x 10]
+			     [y (fail-if (odd? x) "bad x")])
+			    (/ x 2))
+	       5)
+
+  (test-equal? (for/list ([x (in-success 5)])
+		 x)
+	       '(5))
+  (test-equal? (for/list ([x (in-success (failure "bad"))])
+		 x)
+	       '())
+
+  (test-equal? (for/list ([x (in-failure 5)])
+		 x)
+	       '())
+  (test-equal? (for/list ([m (in-failure (failure "bad"))])
+		 m)
+	       '("bad"))
+
+  (test-equal? (for/first/either ([i '(3 5 7)]
+				  #:when (even? i))
+		 #:failure-message "no evens!"
+		 i)
+	       (failure "no evens!"))
+  (test-equal? (for/first/either ([i '(3 5 2 7)]
+				  #:when (even? i))
+		 #:failure-message "no evens!"
+		 i)
+	       2)
+
+  (test-equal? (hash-ref/either (hash) 'a)
+	       (failure "hash-ref/either: key 'a not found"))
+  (test-equal? (hash-ref/either (hash) 'a "bad")
+	       (failure "bad"))
+  (test-equal? (hash-ref/either (hash 'a 5) 'a)
+	       5)
+
+  (test-equal? (first/either empty)
+	       (failure "first/either: empty list"))
+  (test-equal? (first/either empty "bad")
+	       (failure "bad"))
+  (test-equal? (first/either '(5))
+	       5)
+#+END_SRC
+
