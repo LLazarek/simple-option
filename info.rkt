@@ -3,4 +3,4 @@
 (define collection "simple-option")
 (define build-deps '("racket-doc" "scribble-lib" "at-exp-lib"))
 (define deps '("base"
-               "ruinit"))
+               "git://github.com/llazarek/ruinit.git"))
