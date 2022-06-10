@@ -1,28 +1,17 @@
 #+TITLE: simple-option
 
-Simple implementations of option and either datatypes.
+Simple scheme-y implementations of option and either datatypes.
+See the docs for details.
 
-Usage:
-#+BEGIN_SRC racket
-(require simple-option) ; for option
-(require simple-option/option) ; same as above
-(require simple-option/either) ; for either
-#+END_SRC
+* Installation
+: raco pkg install https://github.com/LLazarek/simple-option
 
-* =option= interface
-The option library defines a unique value named =absent=.
-The idea is that client code returns this =absent= value to signal failures, and otherwise just returns successful results normally.
-Note that this is different than typical implementations of this data type in that there is no extra wrapper for successful results.
-This is usually convenient, but does sacrifice some expressiveness; see the caveat below.
+* Documentation
+: raco docs simple-option
 
-The rest of the library provides tools for working with values that might be =absent=.
-=option-let*= provides a convenient interface to sequence operations that might return =absent=.
-=in-option= provides an iteration form that is like an empty sequence for =absent=, and =in-value= otherwise.
-=for/first/option= is a version of racket's =for/first= that returns =absent= if no iteraction occurs instead of =#f=.
-=fail-if= is a convenience tool to explicitly short-circuit a computation under some condition.
-=hash-ref/option= and =first/option= are versions of their namesakes that produce =absent= in the event of failure instead of raising an exception.
+* Examples
 
-Examples:
+** option
 #+BEGIN_SRC racket
   (require simple-option)
 
@@ -88,11 +77,7 @@ Examples:
 #+END_SRC
 
 
-* =either= interface
-The either library is much like the option one, but instead of =absent= it has =failure=, which carries a failure message.
-The library provides the same interface as for options, adapted to support error messages.
-
-Examples:
+** either
 #+BEGIN_SRC racket
   (require simple-option/either)
 

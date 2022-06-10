@@ -47,7 +47,8 @@
      (syntax/loc stx
        (match maybe-value
          [(? absent? a) a]
-         [pat (option-let* (more-clauses ...) body ...)]))]
+         [pat (option-let* (more-clauses ...) body ...)]
+         [else absent]))]
     [(_ () body ...)
      (syntax/loc stx
        (let () body ...))]))

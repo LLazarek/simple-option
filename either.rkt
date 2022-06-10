@@ -50,7 +50,8 @@
          [(failure msg)
           (failure {~? (~a extra-msg msg) msg})]
          [pat
-          (either-let* (more-clauses ...) body ...)]))]
+          (either-let* (more-clauses ...) body ...)]
+         [else (failure @~a{failed to match @'pat})]))]
     [(_ () body ...)
      (syntax/loc stx
        (let () body ...))]))
